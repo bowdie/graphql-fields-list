@@ -75,6 +75,12 @@ export interface FieldsListOptions {
     withDirectives?: boolean;
 
     /**
+     * Set the field node values on output object. Value is false by default.
+     * @type {boolean}
+     */
+    fieldNodeValue?: boolean
+
+    /**
      * Fields skip rule patterns. Usually used to ignore part of request field
      * subtree. For example if query looks like:
      * profiles {
@@ -122,6 +128,7 @@ interface TraverseOptions {
     fragments: FragmentItem;
     vars: any;
     withVars?: boolean;
+    fieldNodeValue?: boolean;
 }
 
 /**
@@ -343,6 +350,8 @@ function traverse(
     opts: TraverseOptions,
     skip: any,
 ): any {
+    const fieldNodeValue = opts.fieldNodeValue ? opts.fieldNodeValue : false;
+
     for (const node of nodes) {
         if (opts.withVars && !verifyDirectives(node.directives, opts.vars)) {
             continue;
@@ -363,7 +372,7 @@ function traverse(
         const nodeSkip = verifySkip(name, skip);
 
         if (nodeSkip !== true) {
-            root[name] = root[name] || (nodes.length ? {} : false);
+            root[name] = root[name] || (nodes.length ? {} : fieldNodeValue);
             nodes.length && traverse(
                 nodes,
                 root[name],
@@ -480,11 +489,13 @@ export function fieldsMap(
         return {};
     }
 
-    const { path, withDirectives, skip } = parseOptions(options);
+    const { path, withDirectives, fieldNodeValue, skip } = 
+        parseOptions(options);
     const tree = traverse(getNodes(fieldNode), {}, {
             fragments: info.fragments,
             vars: info.variableValues,
             withVars: withDirectives,
+            fieldNodeValue: fieldNodeValue,
         },
         skipTree(skip || []),
     );
